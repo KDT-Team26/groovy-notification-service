@@ -1,0 +1,8 @@
+rootProject.name = 'groovy-notification-service'
+
+include 'libs:event-contract'
+include 'libs:observability'
+include 'libs:web-common'
+include 'libs:security-common'
+
+include 'services:notification-service'

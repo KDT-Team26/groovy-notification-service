@@ -1,0 +1,74 @@
+plugins {
+	id 'java'
+	id 'org.springframework.boot' version '4.1.0'
+	id 'io.spring.dependency-management'
+}
+
+// Phase 6: groovy(레거시)의 Notification 도메인이 실제로 이 서비스로 옮겨왔다 — 계획서가
+// 첫 번째 추출 대상으로 지목한 이유(나가는 의존성이 없는 leaf 도메인이라 리스크가 가장 낮음) 그대로.
+// User 테이블에 접근할 필요가 없다(recipientId를 Long으로만 들고 있음, Groovy_MSA_Phase6 문서 참고).
+ext {
+	jjwtVersion = '0.12.6'
+}
+
+dependencies {
+	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+	implementation 'org.springframework.boot:spring-boot-starter-security'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	// notification-service만의 알림 SSE 인스턴스간 전파(pub/sub) + 구독 티켓 저장용
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
+	// Phase 7: notification_db를 이 서비스가 직접 소유하므로, legacy의 Flyway 이력에
+	// 얹혀가던 Phase 6과 달리 이제 자기 스키마 마이그레이션을 직접 관리한다.
+	implementation 'org.springframework.boot:spring-boot-flyway'
+	implementation 'org.flywaydb:flyway-core'
+	implementation 'org.flywaydb:flyway-mysql'
+
+	implementation "io.jsonwebtoken:jjwt-api:${jjwtVersion}"
+	runtimeOnly "io.jsonwebtoken:jjwt-impl:${jjwtVersion}"
+	runtimeOnly "io.jsonwebtoken:jjwt-jackson:${jjwtVersion}"
+
+	runtimeOnly 'com.mysql:mysql-connector-j'
+
+	// MSA 전환 Phase 9: NotificationEventConsumer(@KafkaListener)가 이걸로 legacy의
+	// OutboxRelay가 발행한 이벤트를 소비한다. Boot 4.1은 Kafka 오토컨피그를 별도 모듈로
+	// 분리해서 spring-boot-starter-kafka를 써야 한다(legacy build.gradle 주석 참고).
+	implementation 'org.springframework.boot:spring-boot-starter-kafka'
+
+	// AppConfig가 직접 등록하는 구 Jackson(com.fasterxml.jackson) ObjectMapper가 EventEnvelope의
+	// Instant occurredAt을 직렬화/역직렬화하려면 필요하다.
+	implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+	// MSA 전환 Phase 11: JwksKeyLocator(legacy 호출)에 Retry+CircuitBreaker를 건다.
+	// Spring Cloud CircuitBreaker 스타터는 Spring Cloud 자체가 Boot 4.0.7까지만 검증돼 있어
+	// (Phase 5에서 실제로 겪음) 쓰지 않고, resilience4j 코어 라이브러리를 직접 코드로 조립한다 —
+	// Boot 버전과 무관한 순수 Java 라이브러리라 버전 호환 리스크가 없다.
+	implementation 'io.github.resilience4j:resilience4j-circuitbreaker:2.4.0'
+	implementation 'io.github.resilience4j:resilience4j-retry:2.4.0'
+
+	// MSA 전환 Phase 12: 분산 트레이싱 (legacy build.gradle 주석 참고 — 같은 이유로 별도 모듈 추가)
+	implementation 'org.springframework.boot:spring-boot-micrometer-tracing'
+	implementation 'org.springframework.boot:spring-boot-opentelemetry'
+	implementation 'io.micrometer:micrometer-tracing-bridge-otel'
+	implementation 'io.opentelemetry:opentelemetry-exporter-otlp'
+	implementation 'io.micrometer:micrometer-registry-prometheus'
+
+	implementation project(':libs:event-contract')
+	implementation project(':libs:observability')
+	implementation project(':libs:web-common')
+	implementation project(':libs:security-common')
+
+	compileOnly 'org.projectlombok:lombok'
+	annotationProcessor 'org.projectlombok:lombok'
+
+	testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
+	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+	testImplementation 'org.springframework.security:spring-security-test'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+	useJUnitPlatform()
+}

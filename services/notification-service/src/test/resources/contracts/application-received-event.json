@@ -1,0 +1,13 @@
+{
+  "eventId": "b2bd3f9c-0ab6-474c-ab8e-2efdfbfa2453",
+  "eventType": "APPLICATION_RECEIVED",
+  "occurredAt": "2026-08-18T03:28:02.903373Z",
+  "schemaVersion": 1,
+  "payload": {
+    "recipientUserId": 1,
+    "type": "APPLICATION_RECEIVED",
+    "title": "새로운 참여 신청이 도착했습니다",
+    "message": "Applicant님이 참여를 신청했습니다.",
+    "targetId": 1
+  }
+}
