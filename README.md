@@ -1,10 +1,11 @@
 # groovy-notification-service
 
-**Groovy**(태그 기반 스터디 매칭 플랫폼) MSA의 **알림(Notification)** 도메인을 담당하는 백엔드 서비스입니다. 다른 서비스가 발행한 이벤트를 Kafka로 소비해 알림을 저장하고, SSE(Server-Sent Events)로 브라우저에 실시간 푸시합니다.
 
-## 1. 이 레포는 무엇인가
+## 1. Repo: groovy-notification-service
 
-Groovy 폴리레포 중 `notification-service` 하나만 담은 독립 배포 단위입니다. **나가는 동기 호출이 없는 leaf 서비스**(Kafka 구독만 하고 다른 서비스의 도메인 API를 호출하지 않음)라, MSA 전환 계획서에서 gateway와 함께 가장 먼저 분리·검증된 파일럿 서비스입니다.
+**Groovy**(태그 기반 스터디 매칭 플랫폼) MSA의 **알림(Notification)** 도메인을 담당하는 백엔드 서비스입니다. 
+
+다른 서비스가 발행한 이벤트를 Kafka로 소비해 알림을 저장하고, SSE(Server-Sent Events)로 브라우저에 실시간 푸시합니다.
 
 ## 2. 주요 기능
 
@@ -75,49 +76,14 @@ api-gateway가 `Path=/api/notifications/**`를 이 서비스로 라우팅합니�
 
 ## 6. 로컬 실행 방법
 
-### 방법 A — 독립 빌드
 
 ```bash
 ./gradlew :services:notification-service:bootJar
 docker build -t groovy-notification-service .
 ```
-
-### 방법 B — 로컬 JVM (MySQL/Redis/Kafka/identity-service 필요)
-
-```bash
-export SPRING_DEV_DB_URL="jdbc:mysql://localhost:3306/notification_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul"
-export SPRING_DEV_DB_USERNAME=notification_service
-export SPRING_DEV_DB_PASSWORD=notification_service_local_only_pw
-export JWT_JWKS_URL=http://localhost:8081/.well-known/jwks.json
-export REDIS_HOST=localhost
-export REDIS_PORT=6379
-export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
-export KAFKA_SECURITY_PROTOCOL=SASL_PLAINTEXT
-
-./gradlew :services:notification-service:bootRun
-```
-
-### 방법 C — 전체 스택 (권장)
-
-```bash
-# 원본 Groovy 레포 루트에서
-cp .env.example .env
-docker compose -f docker-compose.local.yml up -d --build notification-service
-```
-
 기본 포트는 `8085`입니다.
 
-> 참고: `application.yml`의 `jwt.jwks-url` 기본값이 아직 `legacy-monolith:8080`을 가리키는 흔적이 남아 있으나, 실제로는 `JWT_JWKS_URL` 환경변수로 항상 덮어써서 동작에는 문제가 없습니다(정리되지 않은 기본값, 알려진 사소한 한계).
-
-## 7. 기존 모노레포에서 어느 부분을 떼온 것인가
-
-레거시 모놀리스 `groovy/`의 `domain/notification` 패키지가 이 서비스로 이전되었으며, **Phase 6에서 가장 먼저 추출된 도메인**입니다(나가는 의존성이 0인 leaf라 파일럿으로 선택됨).
-
-- **그대로 옮겨온 것**: 알림 엔티티, SSE 구독/브로드캐스트 로직, 만료 알림 정리 스케줄러
-- **MSA 전환 과정에서 근본적으로 바뀐 것**: 모놀리식 시절에는 스터디 신청/승인 등의 이벤트가 **같은 프로세스 내 직접 메서드 호출/이벤트**로 알림 서비스에 전달됐지만, 서비스가 물리적으로 분리되면서 **Kafka를 통한 비동기 이벤트 소비**로 재설계되었습니다. `event`(Kafka consumer)/`inbox`(멱등 처리) 패키지가 이때 신규로 생겼습니다.
-- **격리 작업 상세**: `docs/transfer/groovy-notification-service.md`(원본 레포 기준) — CI에 계약 테스트(`NotificationEventConsumerContractTest`) 실행 스텝이 처음에 누락되어 있었던 것을 바로잡은 기록도 남아 있습니다.
-
-## 8. 모니터링 스택에서 관측되는 부분
+## 7. 모니터링 스택에서 관측되는 부분
 
 | 스택 | 관측 내용 |
 |---|---|
