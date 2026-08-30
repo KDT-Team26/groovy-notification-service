@@ -38,3 +38,6 @@ jobs:
 
       - name: Run event-contract schema tests
         run: ./gradlew :services:notification-service:test --tests "*ContractTest" --no-daemon
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GPR_TOKEN: ${{ secrets.GPR_TOKEN }}

@@ -1,8 +1,6 @@
 rootProject.name = 'groovy-notification-service'
 
-include 'libs:event-contract'
-include 'libs:observability'
-include 'libs:web-common'
-include 'libs:security-common'
+// 공통 코드는 groovy-common 레포로 분리되어 GitHub Packages 로 배포된다.
+// notification-service 는 소비 쪽이라 outbox / client-common 은 쓰지 않는다.
 
 include 'services:notification-service'
