@@ -22,6 +22,9 @@ public class SecurityConfig {
 	// Kafka(NotificationEventConsumer)로 들어온다 — "/internal/**" permitAll 규칙은 그래서 삭제.
 	private static final String[] PERMIT_ALL_PATTERNS = {
 		"/actuator/health",
+		// k8s liveness/readiness probe가 쓰는 하위 경로. 리터럴 "/actuator/health" 는
+		// 하위 경로에 매칭되지 않아 probe가 401을 받는다.
+		"/actuator/health/**",
 		"/actuator/prometheus",
 		// 브라우저 EventSource가 커스텀 헤더(Authorization)를 못 보내므로 여기만 인증 필터를 우회하고,
 		// 신원은 NotificationController가 쿼리파라미터 ticket으로 직접 확인한다.
